@@ -1,2 +1,4 @@
-Finanzen_Amigas_CANAT.xlsx
-.csv
+*.xlsx
+*.csv
+*.iml
+*.xml

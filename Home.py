@@ -173,10 +173,10 @@ if uploaded_file:
     expenses_canat = overview_df.loc[overview_df["Posten"] == "Überweisungen an CANAT", "Betrag"].sum()
     expenses_misc = overview_df.loc[overview_df["Posten"] == "Sonstige Ausgaben", "Betrag"].sum()
 
-    income_expenses_metrics_cols_top[1].container(border=True).metric(label="Ausgaben gesamt", value=f"{-total_expenses}",
+    income_expenses_metrics_cols_top[1].container(border=True).metric(label="Ausgaben gesamt", value=f"{total_expenses}",
                                                            delta="- €")
-    income_expenses_metrics_cols_bottom[2].container(border=True).metric(label="an CANAT", value=f"{-expenses_canat}", delta="- €")
-    income_expenses_metrics_cols_bottom[3].container(border=True).metric(label="Sonstiges", value=f"{-expenses_misc}", delta="- €")
+    income_expenses_metrics_cols_bottom[2].container(border=True).metric(label="an CANAT", value=f"{expenses_canat}", delta="- €")
+    income_expenses_metrics_cols_bottom[3].container(border=True).metric(label="Sonstiges", value=f"{expenses_misc}", delta="- €")
 
     # Download
     download_cols = input_and_metric_cols[0].container().columns(2)

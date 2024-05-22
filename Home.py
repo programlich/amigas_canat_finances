@@ -7,7 +7,7 @@ import xlsxwriter
 
 st.set_page_config(layout="wide")
 
-input_and_metric_cols = st.container(border=True).columns([0.15, 0.3, 0.3, 0.3])
+input_and_metric_cols = st.container(border=True).columns([0.2, 0.8])
 
 # Upload the bank transfer data as a .csv
 uploaded_file = input_and_metric_cols[0].container(border=True).file_uploader("Kontoauszug")
@@ -139,14 +139,18 @@ if uploaded_file:
         ]})
     st.dataframe(overview_df)
     # Add the overview metrics at the top of the page
+    date_and_member_cols = input_and_metric_cols[1].container().columns([0.7, 0.3])
+    income_expenses_metrics_cols_top = input_and_metric_cols[1].container().columns(2)
+    income_expenses_metrics_cols_bottom = input_and_metric_cols[1].container().columns(4)
+
     # Date range
-    start_date = bank_transfer_df["Valutadatum_datetime"].min().strftime("%d.%m.%Y")
-    end_date = bank_transfer_df["Valutadatum_datetime"].max().strftime("%d.%m.%Y")
-    input_and_metric_cols[1].container(border=True).metric(label="Zeitraum", value=f"{start_date} -\n   {end_date}")
+    start_date = bank_transfer_df["Valutadatum_datetime"].min().strftime("%d.%m.%y")
+    end_date = bank_transfer_df["Valutadatum_datetime"].max().strftime("%d.%m.%y")
+    date_and_member_cols[0].container(border=True).metric(label="Zeitraum", value=f"{start_date} -\n   {end_date}")
 
     # Members
     num_members = (grouped_income_df["Mitglied"] == True).sum()
-    input_and_metric_cols[1].container(border=True).metric(label="Aktive Mitglieder", value=num_members)
+    date_and_member_cols[1].container(border=True).metric(label="Aktive Mitglieder", value=num_members)
 
     # Income
     total_income = overview_df.loc[overview_df["Posten"].isin(["Einnahmen durch Mitgliedschaften",
@@ -154,12 +158,11 @@ if uploaded_file:
     income_members = overview_df.loc[overview_df["Posten"] == "Einnahmen durch Mitgliedschaften", "Betrag"].sum()
     income_donations = overview_df.loc[overview_df["Posten"] == "Einnahmen durch Einmalspenden", "Betrag"].sum()
 
-    input_and_metric_cols[2].container(border=True).metric(label="Einnahmen gesamt", value=f"{total_income}",
+    income_expenses_metrics_cols_top[0].container(border=True).metric(label="Einnahmen gesamt", value=f"{total_income}",
                                                            delta="€")
-    income_cols = input_and_metric_cols[2].container().columns(2)
-    income_cols[0].container(border=True).metric(label="Mitgliedschaften", value=f"{income_members}",
+    income_expenses_metrics_cols_bottom[0].container(border=True).metric(label="Mitgliedschaften", value=f"{income_members}",
                                                  delta="€")
-    income_cols[1].container(border=True).metric(label="Spenden", value=f"{income_donations}",
+    income_expenses_metrics_cols_bottom[1].container(border=True).metric(label="Spenden", value=f"{income_donations}",
                                                  delta="€")
 
     # Expenses
@@ -168,13 +171,10 @@ if uploaded_file:
     expenses_canat = overview_df.loc[overview_df["Posten"] == "Überweisungen an CANAT", "Betrag"].sum()
     expenses_misc = overview_df.loc[overview_df["Posten"] == "Sonstige Ausgaben", "Betrag"].sum()
 
-    input_and_metric_cols[3].container(border=True).metric(label="Ausgaben gesamt", value=f"{-total_expenses}",
+    income_expenses_metrics_cols_top[1].container(border=True).metric(label="Ausgaben gesamt", value=f"{-total_expenses}",
                                                            delta="- €")
-    expenses_cols = input_and_metric_cols[3].container().columns(2)
-    expenses_cols[0].container(border=True).metric(label="an CANAT", value=f"{-expenses_canat}", delta="- €")
-    expenses_cols[1].container(border=True).metric(label="Sonstiges", value=f"{-expenses_misc}", delta="- €")
-
-
+    income_expenses_metrics_cols_bottom[2].container(border=True).metric(label="an CANAT", value=f"{-expenses_canat}", delta="- €")
+    income_expenses_metrics_cols_bottom[3].container(border=True).metric(label="Sonstiges", value=f"{-expenses_misc}", delta="- €")
 
     download_cols = input_and_metric_cols[0].container().columns(2)
     if download_cols[0].button("Prepare Download", use_container_width=True):

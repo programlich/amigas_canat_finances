@@ -1,5 +1,4 @@
 import io
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -29,6 +28,7 @@ if uploaded_file:
     bank_transfer_df["Type"] = None
     bank_transfer_df["Mitglied"] = None
 
+    # Remove unnecessary cols
     bank_transfer_df = bank_transfer_df[[
         "Valutadatum",
         "Valutadatum_datetime",
@@ -43,7 +43,6 @@ if uploaded_file:
     ]]
 
     # Add Type column to df and fill it with values according to the values of other cols
-    bank_transfer_df["Type"] = None
     bank_transfer_df.loc[(bank_transfer_df["Betrag"] > 0) & (bank_transfer_df["Buchungstext"] ==
                                                              "Dauerauftragsgutschr"), "Type"] = "Mitgliedschaft"
     bank_transfer_df.loc[(bank_transfer_df["Betrag"] > 0) & (bank_transfer_df["Buchungstext"] ==
@@ -59,7 +58,8 @@ if uploaded_file:
     # Create an editable bank tranfer df to manually set a donation to be from a member or not
     with st.expander("Überweisungen", expanded=True):
         transfer_cols = st.columns([0.8,0.2])
-        edited_bank_transfer_df = transfer_cols[0].data_editor(bank_transfer_df,
+
+        edited_bank_transfer_df = transfer_cols[0].data_editor(st.session_state["bank_transfer_df"],
                                              hide_index=True,
                                              disabled=(
                                                  "Valutadatum",
@@ -67,7 +67,6 @@ if uploaded_file:
                                                  "Betrag",
                                                  "Waehrung",
                                                  "Verwendungszweck",
-                                                 "Type",
                                                  "Buchungstext",
                                                  "Saldo nach Buchung"),
                                              column_order=(
@@ -79,7 +78,9 @@ if uploaded_file:
                                                  "Mitglied",
                                                  "Buchungstext"), use_container_width=True, height=450)
 
-        saldo_fig = px.line(data_frame=bank_transfer_df, x="Valutadatum", y="Saldo nach Buchung")
+        saldo_fig = px.line(data_frame=bank_transfer_df, x="Valutadatum", y="Saldo nach Buchung",
+                            color_discrete_sequence=["#D4A86A"])
+        saldo_fig.update_traces(line={"width":3})
         transfer_cols[1].plotly_chart(saldo_fig, use_container_width=True)
 
     income_df = edited_bank_transfer_df.loc[edited_bank_transfer_df["Betrag"] > 0, :]
@@ -123,7 +124,8 @@ if uploaded_file:
         #"Saldo nach Buchung"
     ]]
     expenses_df.set_index("Name Zahlungsbeteiligter", inplace=True)
-    income_expenses_cols[1].dataframe(expenses_df, use_container_width=True)
+    income_expenses_cols[1].data_editor(expenses_df, use_container_width=True,
+                                        disabled=["Waehrung", "Betrag","Valutadatum"])
 
     overview_df = pd.DataFrame({
         "Posten": [
@@ -137,7 +139,7 @@ if uploaded_file:
             expenses_df.loc[expenses_df["Type"] == "Spende an CANAT", "Betrag"].sum(),
             expenses_df.loc[expenses_df["Type"] == "Sonstige Ausgabe", "Betrag"].sum()
         ]})
-    st.dataframe(overview_df)
+
     # Add the overview metrics at the top of the page
     date_and_member_cols = input_and_metric_cols[1].container().columns([0.7, 0.3])
     income_expenses_metrics_cols_top = input_and_metric_cols[1].container().columns(2)
@@ -176,6 +178,7 @@ if uploaded_file:
     income_expenses_metrics_cols_bottom[2].container(border=True).metric(label="an CANAT", value=f"{-expenses_canat}", delta="- €")
     income_expenses_metrics_cols_bottom[3].container(border=True).metric(label="Sonstiges", value=f"{-expenses_misc}", delta="- €")
 
+    # Download
     download_cols = input_and_metric_cols[0].container().columns(2)
     if download_cols[0].button("Prepare Download", use_container_width=True):
         output_excel = io.BytesIO()

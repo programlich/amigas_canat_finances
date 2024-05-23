@@ -59,7 +59,7 @@ if uploaded_file:
     with st.expander("Überweisungen", expanded=True):
         transfer_cols = st.columns([0.8,0.2])
 
-        edited_bank_transfer_df = transfer_cols[0].data_editor(st.session_state["bank_transfer_df"],
+        edited_bank_transfer_df = transfer_cols[0].data_editor(bank_transfer_df,
                                              hide_index=True,
                                              disabled=(
                                                  "Valutadatum",

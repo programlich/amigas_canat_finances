@@ -57,35 +57,42 @@ if uploaded_file:
 
     # Create an editable bank tranfer df to manually set a donation to be from a member or not
     with st.expander("Überweisungen", expanded=True):
-        transfer_cols = st.columns([0.8,0.2])
+        transfer_cols = st.columns([0.8, 0.2])
 
         edited_bank_transfer_df = transfer_cols[0].data_editor(bank_transfer_df,
-                                             hide_index=True,
-                                             disabled=(
-                                                 "Valutadatum",
-                                                 "Name Zahlungsbeteiligter",
-                                                 "Betrag",
-                                                 "Waehrung",
-                                                 "Verwendungszweck",
-                                                 "Buchungstext",
-                                                 "Saldo nach Buchung"),
-                                             column_order=(
-                                                 "Valutadatum",
-                                                 "Name Zahlungsbeteiligter",
-                                                 "Betrag",
-                                                 "Verwendungszweck",
-                                                 "Type",
-                                                 "Mitglied",
-                                                 "Buchungstext"), use_container_width=True, height=450)
+                                                               hide_index=True,
+                                                               disabled=(
+                                                                   "Valutadatum",
+                                                                   "Name Zahlungsbeteiligter",
+                                                                   "Betrag",
+                                                                   "Waehrung",
+                                                                   "Verwendungszweck",
+                                                                   "Buchungstext",
+                                                                   "Saldo nach Buchung"),
+                                                               column_order=(
+                                                                   "Valutadatum",
+                                                                   "Name Zahlungsbeteiligter",
+                                                                   "Betrag",
+                                                                   "Verwendungszweck",
+                                                                   "Type",
+                                                                   "Mitglied",
+                                                                   "Buchungstext"), use_container_width=True,
+                                                               height=450)
 
         saldo_fig = px.line(data_frame=bank_transfer_df, x="Valutadatum", y="Saldo nach Buchung",
                             color_discrete_sequence=["#D4A86A"])
-        saldo_fig.update_traces(line={"width":3})
+        saldo_fig.update_traces(line={"width": 3})
         transfer_cols[1].plotly_chart(saldo_fig, use_container_width=True)
 
     income_df = edited_bank_transfer_df.loc[edited_bank_transfer_df["Betrag"] > 0, :]
     income_df = income_df.sort_values("Mitglied", ascending=False)
     income_df.set_index("Name Zahlungsbeteiligter", inplace=True)
+
+    # Make separate income_dfs for members and donations
+    income_members_df = income_df[income_df["Mitglied"] == True].copy()
+    income_donations_df = income_df[income_df["Mitglied"] == False].copy()
+    income_members_df.drop(columns=["Valutadatum_datetime", "Buchungstext", "Mitglied", "Type"], inplace=True)
+    income_donations_df.drop(columns=["Valutadatum_datetime", "Buchungstext", "Mitglied", "Type"], inplace=True)
 
     # Group the bank tranfer df by person
     income_df["Betrag gesamt"] = income_df["Betrag"]
@@ -96,14 +103,14 @@ if uploaded_file:
                                                                            })
     grouped_income_df = grouped_income_df.sort_values("Mitglied", ascending=False)
 
-    income_expenses_cols = st.container().columns([0.6,0.4])
+    income_expenses_cols = st.container().columns([0.6, 0.4])
 
     income_expenses_cols[0].write("#### Einnahmen")
     income_expenses_cols[0].dataframe(grouped_income_df, use_container_width=True)
 
     # Calculate and display the expenses
     income_expenses_cols[1].write("#### Ausgaben")
-    expenses_df = edited_bank_transfer_df.loc[edited_bank_transfer_df["Betrag"] <= 0, :]
+    expenses_df = edited_bank_transfer_df.loc[edited_bank_transfer_df["Betrag"] <= 0, :].copy()
     expenses_df.drop(columns=["Mitglied"], inplace=True)
     expenses_df.sort_values("Name Zahlungsbeteiligter", ascending=False, inplace=True)
 
@@ -119,13 +126,10 @@ if uploaded_file:
         "Betrag",
         "Waehrung",
         "Valutadatum",
-        #"Buchungstext",
-        #"Verwendungszweck",
-        #"Saldo nach Buchung"
     ]]
     expenses_df.set_index("Name Zahlungsbeteiligter", inplace=True)
     income_expenses_cols[1].data_editor(expenses_df, use_container_width=True,
-                                        disabled=["Waehrung", "Betrag","Valutadatum"])
+                                        disabled=["Waehrung", "Betrag", "Valutadatum"])
 
     overview_df = pd.DataFrame({
         "Posten": [
@@ -161,11 +165,12 @@ if uploaded_file:
     income_donations = overview_df.loc[overview_df["Posten"] == "Einnahmen durch Einmalspenden", "Betrag"].sum()
 
     income_expenses_metrics_cols_top[0].container(border=True).metric(label="Einnahmen gesamt", value=f"{total_income}",
-                                                           delta="€")
-    income_expenses_metrics_cols_bottom[0].container(border=True).metric(label="Mitgliedschaften", value=f"{income_members}",
-                                                 delta="€")
+                                                                      delta="€")
+    income_expenses_metrics_cols_bottom[0].container(border=True).metric(label="Mitgliedschaften",
+                                                                         value=f"{income_members}",
+                                                                         delta="€")
     income_expenses_metrics_cols_bottom[1].container(border=True).metric(label="Spenden", value=f"{income_donations}",
-                                                 delta="€")
+                                                                         delta="€")
 
     # Expenses
     total_expenses = overview_df.loc[overview_df["Posten"].isin(["Überweisungen an CANAT", "Sonstige Ausgaben"]),
@@ -173,10 +178,13 @@ if uploaded_file:
     expenses_canat = overview_df.loc[overview_df["Posten"] == "Überweisungen an CANAT", "Betrag"].sum()
     expenses_misc = overview_df.loc[overview_df["Posten"] == "Sonstige Ausgaben", "Betrag"].sum()
 
-    income_expenses_metrics_cols_top[1].container(border=True).metric(label="Ausgaben gesamt", value=f"{total_expenses}",
-                                                           delta="- €")
-    income_expenses_metrics_cols_bottom[2].container(border=True).metric(label="an CANAT", value=f"{expenses_canat}", delta="- €")
-    income_expenses_metrics_cols_bottom[3].container(border=True).metric(label="Sonstiges", value=f"{expenses_misc}", delta="- €")
+    income_expenses_metrics_cols_top[1].container(border=True).metric(label="Ausgaben gesamt",
+                                                                      value=f"{total_expenses}",
+                                                                      delta="- €")
+    income_expenses_metrics_cols_bottom[2].container(border=True).metric(label="an CANAT", value=f"{expenses_canat}",
+                                                                         delta="- €")
+    income_expenses_metrics_cols_bottom[3].container(border=True).metric(label="Sonstiges", value=f"{expenses_misc}",
+                                                                         delta="- €")
 
     # Download
     download_cols = input_and_metric_cols[0].container().columns(2)
@@ -184,10 +192,16 @@ if uploaded_file:
         output_excel = io.BytesIO()
 
         with pd.ExcelWriter(output_excel, engine="xlsxwriter") as writer:
-            edited_bank_transfer_df.to_excel(writer, sheet_name="Kontobewegung")
-            grouped_income_df.to_excel(writer, sheet_name="Einnahmen")
-            expenses_df.to_excel(writer, sheet_name="Ausgaben")
-            overview_df.to_excel(writer, sheet_name="Übersicht")
+            # Drop certain cols for the export of edited_bank_transfer_df
+            export_bank_transfer_df = edited_bank_transfer_df.drop(
+                columns=["Mitglied", "Buchungstext", "Valutadatum_datetime"])
+            export_bank_transfer_df.to_excel(writer, sheet_name="Kontobewegung", index=False)
+
+            grouped_income_df.to_excel(writer, sheet_name="Einnahmen gesamt", index=False)
+            income_members_df.to_excel(writer, sheet_name="Einnahmen Mitgliedschaften", index=False)
+            income_donations_df.to_excel(writer, sheet_name="Einnahmen Einmalspenden", index=False)
+            expenses_df.to_excel(writer, sheet_name="Ausgaben", index=False)
+            overview_df.to_excel(writer, sheet_name="Übersicht", index=False)
 
         output_excel.seek(0)
 
@@ -195,4 +209,3 @@ if uploaded_file:
                                          data=output_excel,
                                          file_name="Finanzen_Amigas_CANAT.xlsx",
                                          mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-
